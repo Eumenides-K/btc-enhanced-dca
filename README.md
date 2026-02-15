@@ -114,7 +114,7 @@ Multiplier = (Minimum Multiplier + k × (DCA Line - Ahr999)² / Ahr999)
 
 - k value is calculated based on the set minimum DCA amount to ensure smooth curve
 
-- Can be modified in [src/data/fetcher.py](https://github.com/Eumenides-K/btc-enhanced-dca/blob/main/src/data/fetcher.py)
+- Can be modified in [src/data/calculator.py](https://github.com/Eumenides-K/btc-enhanced-dca/blob/main/src/data/calculator.py)
 
   
 
@@ -253,7 +253,7 @@ ahr999 = (当前价格 / 200日定投成本) * (当前价格 / 指数增长估�
 
 - k 值根据设定的最小定投金额计算，确保曲线平滑
 
-- 可在 [src/data/fetcher.py](https://github.com/Eumenides-K/btc-enhanced-dca/blob/main/src/data/fetcher.py) 中修改
+- 可在 [src/data/calculator.py](https://github.com/Eumenides-K/btc-enhanced-dca/blob/main/src/data/calculator.py) 中修改
 
   
 

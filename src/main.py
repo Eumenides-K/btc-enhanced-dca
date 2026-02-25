@@ -9,7 +9,11 @@ from typing import Any, Dict, Optional
 from src.config.settings import AppConfig
 from src.data.calculator import MultiplierCalculator
 from src.data.fetcher import DataFetcher
-from src.trading.okx_btc_usdt_trader import InsufficientBalanceError, OKXBtcUsdtTrader
+from src.trading.okx_btc_usdt_trader import (
+    InsufficientBalanceError,
+    OKXBtcUsdtTrader,
+    OrderAmountTooSmallError,
+)
 
 RUN_RESULT_PATH = Path("run_result.json")
 
@@ -117,6 +121,17 @@ def main() -> int:
             "Place trade order",
             exc,
             failure_type="insufficient_balance",
+        )
+    except OrderAmountTooSmallError as exc:
+        print(
+            "[ERROR] Place trade order failed: amount is below OKX minimum order requirement. "
+            "Please increase BASE_INVESTMENT_AMOUNT or MIN_MULTIPLIER."
+        )
+        exit_code = _fail(
+            run_result,
+            "Place trade order",
+            exc,
+            failure_type="order_amount_too_small",
         )
     except Exception as exc:
         exit_code = _fail(run_result, "DCA run", exc)

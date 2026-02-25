@@ -42,9 +42,9 @@ jobs:
           OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
           OKX_SECRET_KEY: ${{ secrets.OKX_SECRET_KEY }}
           OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
-          BASE_INVESTMENT_AMOUNT: ${{ vars.BASE_INVESTMENT_AMOUNT || secrets.BASE_INVESTMENT_AMOUNT || '10.0' }}
-          MIN_MULTIPLIER: ${{ vars.MIN_MULTIPLIER || secrets.MIN_MULTIPLIER || '0.1' }}
-          MAX_MULTIPLIER: ${{ vars.MAX_MULTIPLIER || secrets.MAX_MULTIPLIER || '4.0' }}
+          BASE_INVESTMENT_AMOUNT: ${{ secrets.BASE_INVESTMENT_AMOUNT || vars.BASE_INVESTMENT_AMOUNT || '10.0' }}
+          MIN_MULTIPLIER: ${{ secrets.MIN_MULTIPLIER || vars.MIN_MULTIPLIER || '0.1' }}
+          MAX_MULTIPLIER: ${{ secrets.MAX_MULTIPLIER || vars.MAX_MULTIPLIER || '4.0' }}
 
       - name: Update investment records
         if: always()
@@ -91,7 +91,13 @@ jobs:
 
           exit_code = os.environ.get("EXIT_CODE", "1")
           run_ok = exit_code == "0"
+          failure_type = str(run_result.get("failure_type", "")) if run_result else ""
           is_insufficient = "insufficient usdt balance" in log.lower() or "insufficientbalanceerror" in log.lower()
+          is_order_too_small = (
+              failure_type == "order_amount_too_small"
+              or "minimum order amount" in log.lower()
+              or "51020" in log
+          )
           error_lines = [line.strip() for line in log.splitlines() if line.strip().startswith("[ERROR]")]
           exception_reason = error_lines[0] if error_lines else f"Process exited with code {exit_code}"
           executed_invest = str(run_result.get("executed_invest_usdt", "N/A")) if run_result else "N/A"
@@ -147,6 +153,26 @@ jobs:
           - Executed BTC amount: `{executed_btc}`
           - Current price: `{current_price}`
           - Message: `insufficient balance`
+          {latest_metrics}
+
+          ## Raw Log
+
+          ```text
+          {log.strip() or 'No log output.'}
+          ```
+          """
+          elif is_order_too_small:
+              title = f"[DCA] Failed (Order Amount Too Small) - {now}"
+              body = f"""## DCA Run Result
+
+          - Status: Failed (Order Amount Too Small)
+          - Run time: {now}
+          - Ahr999: `{ahr999}`
+          - Planned investment amount: `{invest_amount}`
+          - Executed investment amount: `{executed_invest}`
+          - Executed BTC amount: `{executed_btc}`
+          - Current price: `{current_price}`
+          - Message: `order amount below minimum requirement`
           {latest_metrics}
 
           ## Raw Log

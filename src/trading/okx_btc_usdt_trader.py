@@ -9,13 +9,17 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 import ccxt
-from ccxt.base.errors import InsufficientFunds
+from ccxt.base.errors import InsufficientFunds, InvalidOrder
 
 from src.config.settings import OKXConfig, TradingConfig
 
 
 class InsufficientBalanceError(RuntimeError):
     """Raised when exchange balance is insufficient for order placement."""
+
+
+class OrderAmountTooSmallError(RuntimeError):
+    """Raised when order size is below exchange minimum requirements."""
 
 
 class OKXBtcUsdtTrader:
@@ -78,12 +82,69 @@ class OKXBtcUsdtTrader:
                 f"Insufficient funds for OKX market buy: symbol={self.symbol}, "
                 f"requested_usdt={float(usdt_amount):.8f}"
             ) from e
+        except InvalidOrder as e:
+            message = str(e)
+            if "51020" in message or "minimum order amount" in message.lower():
+                raise OrderAmountTooSmallError(
+                    f"Order amount is below OKX minimum: symbol={self.symbol}, "
+                    f"requested_usdt={float(usdt_amount):.8f}, detail={message}"
+                ) from e
+            raise RuntimeError(f"Invalid order on OKX: {self.symbol}") from e
         except Exception as e:
             raise RuntimeError(f"Failed to place market buy order on OKX: {self.symbol}") from e
+
+    def _get_realtime_min_order_usdt(self) -> Dict[str, float]:
+        """Get realtime minimum order notional in USDT from exchange metadata and ticker."""
+        self.exchange.load_markets()
+        market = self.exchange.market(self.symbol)
+        market_limits = market.get("limits", {})
+        market_info = market.get("info", {})
+
+        min_amount_btc = self._to_float(market_limits.get("amount", {}).get("min"))
+        if min_amount_btc is None:
+            min_amount_btc = self._to_float(market_info.get("minSz"))
+        if min_amount_btc is None or min_amount_btc <= 0:
+            raise RuntimeError(f"Unable to resolve minimum order amount for {self.symbol}")
+
+        ticker = self.exchange.fetch_ticker(self.symbol)
+        reference_price = (
+            self._to_float(ticker.get("last"))
+            or self._to_float(ticker.get("ask"))
+            or self._to_float(ticker.get("bid"))
+        )
+        if reference_price is None or reference_price <= 0:
+            raise RuntimeError(f"Unable to resolve reference price for {self.symbol}")
+
+        min_notional_usdt = min_amount_btc * reference_price
+        return {
+            "min_amount_btc": float(min_amount_btc),
+            "reference_price_usdt": float(reference_price),
+            "min_notional_usdt": float(min_notional_usdt),
+        }
+
+    def _validate_min_order_notional(self, usdt_amount: float) -> None:
+        min_order = self._get_realtime_min_order_usdt()
+        min_notional_usdt = min_order["min_notional_usdt"]
+        print(
+            "[INFO] Realtime minimum order check: "
+            f"symbol={self.symbol}, requested_usdt={float(usdt_amount):.8f}, "
+            f"min_notional_usdt={min_notional_usdt:.8f}, "
+            f"min_amount_btc={min_order['min_amount_btc']:.8f}, "
+            f"reference_price_usdt={min_order['reference_price_usdt']:.8f}"
+        )
+        if usdt_amount < min_notional_usdt:
+            raise OrderAmountTooSmallError(
+                "Order amount is below realtime OKX minimum: "
+                f"symbol={self.symbol}, requested_usdt={float(usdt_amount):.8f}, "
+                f"min_notional_usdt={min_notional_usdt:.8f}, "
+                f"min_amount_btc={min_order['min_amount_btc']:.8f}, "
+                f"reference_price_usdt={min_order['reference_price_usdt']:.8f}"
+            )
 
     def buy_spot_btc_with_usdt(self, usdt_amount: float) -> Dict[str, Any]:
         """Buy BTC/USDT spot with the specified USDT amount"""
         self._validate_usdt_amount(usdt_amount)
+        self._validate_min_order_notional(usdt_amount)
 
         order = self._place_market_buy_with_cost(usdt_amount)
         filled_btc = self._to_float(order.get("filled"))

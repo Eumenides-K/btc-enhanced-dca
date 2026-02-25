@@ -152,6 +152,7 @@ MIT License
 
 ---
 
+<a name="chinese"></a>
 # BTC Enhanced DCA
 
 一个智能的比特币定投工具，根据 [Ahr999](https://github.com/CoxxA/bitcoin-ahr999-HODL) 指标动态调整每日投资金额。

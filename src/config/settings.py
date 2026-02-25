@@ -17,9 +17,9 @@ class OKXConfig:
 @dataclass
 class TradingConfig:
     """Trading parameters configuration."""
-    base_investment_amount: float = 10.0  # Base investment in USDT
-    min_multiplier: float = 0.1  # Minimum investment multiplier
-    max_multiplier: float = 4.0  # Maximum investment multiplier
+    base_investment_amount: float = os.getenv("BASE_INVESTMENT_AMOUNT", 10.0) # Base investment in USDT
+    min_multiplier: float = os.getenv("MIN_MULTIPLIER", 0.1) # Minimum investment multiplier
+    max_multiplier: float = os.getenv("MAX_MULTIPLIER", 4.0)  # Maximum investment multiplier
     symbol: str = "BTC/USDT"
     order_type: str = "market"
     max_retries: int = 3

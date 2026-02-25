@@ -42,9 +42,9 @@ jobs:
           OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
           OKX_SECRET_KEY: ${{ secrets.OKX_SECRET_KEY }}
           OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
-          BASE_INVESTMENT_AMOUNT: ${{ vars.BASE_INVESTMENT_AMOUNT || '10.0' }}
-          MIN_MULTIPLIER: ${{ vars.MIN_MULTIPLIER || '0.1' }}
-          MAX_MULTIPLIER: ${{ vars.MAX_MULTIPLIER || '4.0' }}
+          BASE_INVESTMENT_AMOUNT: ${{ vars.BASE_INVESTMENT_AMOUNT || secrets.BASE_INVESTMENT_AMOUNT || '10.0' }}
+          MIN_MULTIPLIER: ${{ vars.MIN_MULTIPLIER || secrets.MIN_MULTIPLIER || '0.1' }}
+          MAX_MULTIPLIER: ${{ vars.MAX_MULTIPLIER || secrets.MAX_MULTIPLIER || '4.0' }}
 
       - name: Update investment records
         if: always()

@@ -10,6 +10,8 @@ An intelligent Bitcoin Dollar Cost Averaging (DCA) tool that dynamically adjusts
 - **Smart Indicator**: Decision-making based on Ahr999
 - **Automated Trading**: Executes BTC/USDT spot market buy orders via OKX API
 - **GitHub Actions Integration**: No server needed, runs automatically daily and logs results to GitHub Issues
+- **Investment Records**: Stores daily strategy snapshots in `data/investment_records.csv`
+- **Performance Dashboard**: Publishes strategy/benchmark PnL curves to GitHub Pages (`docs/`)
 
 ## Quick Start
 
@@ -25,7 +27,11 @@ No deployment or server needed, runs automatically every day and logs results to
 
 1. **Fork this repository** to your GitHub account
 
-2. **Configure GitHub Secrets**
+2. **Clear historical record directories**
+
+   After forking, delete historical data in `data/` and `docs/data/` first. This avoids mixing the original repository's historical performance with your own records.
+
+3. **Configure GitHub Secrets**
 
    Go to your repository: `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
 
@@ -41,21 +47,29 @@ No deployment or server needed, runs automatically every day and logs results to
    - `BASE_INVESTMENT_AMOUNT` - Base DCA amount (USDT, default: 10.0)
    - `MIN_MULTIPLIER` - Minimum DCA multiplier (default: 0.1)
    - `MAX_MULTIPLIER` - Maximum DCA multiplier (default: 4.0)
+
+4. **Enable GitHub Pages (one-time)**
+
+   - Go to `Settings` -> `Pages`
+   - Set Source to `Deploy from a branch`
+   - Branch: `main`, Folder: `/docs`
+   - Save, then open the published URL to view the performance dashboard
    
-3. **Verify Workflow**
+5. **Verify Workflow**
 
    - Go to the `Actions` tab of your repository
    - Click on the `Daily BTC Enhanced DCA` workflow
    - Click `Run workflow` → `Run workflow` to perform manual testing. Note that if execution succeeds, actual trading will occur
    - Check the workflow run logs to ensure no errors
 
-4. **Automatic Execution**
+6. **Automatic Execution**
 
    The workflow will run automatically every day. Each execution creates a GitHub Issue showing:
    - Current BTC price
    - Ahr999 indicator value
    - Investment amount
    - Execution status and logs
+   - Portfolio snapshot (cumulative invest, value, PnL, benchmark comparison)
 
 ### Local Run
 
@@ -148,6 +162,8 @@ MIT License
 - **智能指标**：基于 Ahr999 进行决策
 - **自动交易**：通过 OKX API 执行 BTC/USDT 现货市价买入订单
 - **GitHub Actions 集成**：无需服务器，每日自动运行并将结果记录到 GitHub Issues
+- **投资记录**：将每日策略快照写入 `data/investment_records.csv`
+- **收益看板**：在 GitHub Pages 发布策略/基准收益曲线（`docs/`）
 
 ## 快速开始
 
@@ -164,7 +180,11 @@ MIT License
 
 1. **Fork 本仓库** 到您的 GitHub 账户
 
-2. **配置 GitHub Secrets**
+2. **清理历史记录目录**
+
+   Fork 后请先删除 `data/` 与 `docs/data/` 中的历史数据，这样可以避免原仓库历史收益数据混入你自己的投资记录。
+
+3. **配置 GitHub Secrets**
 
    进入您的仓库：`Settings` → `Secrets and variables` → `Actions` → `New repository secret`
 
@@ -180,21 +200,29 @@ MIT License
    - `BASE_INVESTMENT_AMOUNT` - 基础定投金额（USDT，默认：10.0）
    - `MIN_MULTIPLIER` - 最小定投倍率 （默认：0.1）
    - `MAX_MULTIPLIER` - 最大定投倍率 （默认：4.0）
+
+4. **启用 GitHub Pages**
+
+   - 进入 `Settings` → `Pages`
+   - Source 选择 `Deploy from a branch`
+   - Branch 选择 `main`，Folder 选择 `/docs`
+   - 保存后访问发布地址查看收益看板
    
-3. **验证工作流**
+5. **验证工作流**
 
    - 进入仓库的 `Actions` 标签页
    - 点击 `Daily BTC Enhanced DCA` 工作流
    - 点击 `Run workflow` → `Run workflow` 进行手动测试，注意此时若执行成功会进行交易
    - 查看工作流运行日志，确认无错误
 
-4. **自动执行**
+6. **自动执行**
 
    工作流将每天自动运行一次。每次执行都会创建一个 GitHub Issue，显示：
    - 当前 BTC 价格
    - Ahr999 指标值
    - 投资金额
    - 执行状态和日志
+   - 组合快照（累计投入、组合价值、盈亏、基准对比）
 
 ### 本地运行
 

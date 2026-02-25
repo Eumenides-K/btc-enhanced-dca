@@ -1,17 +1,17 @@
-﻿name: Daily BTC Enhanced DCA
+name: Daily BTC Enhanced DCA
 
 on:
   schedule:
     # Daily at 00:00 UTC
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
-  run-dca-and-create-issue:
+  run-dca-and-report:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -46,13 +46,22 @@ jobs:
           MIN_MULTIPLIER: ${{ vars.MIN_MULTIPLIER || '0.1' }}
           MAX_MULTIPLIER: ${{ vars.MAX_MULTIPLIER || '4.0' }}
 
-      - name: Build Issue Content
-        id: build_issue
+      - name: Update investment records
+        if: always()
+        run: python -m src.reporting.record_updater
+
+      - name: Generate dashboard
+        if: always()
+        run: python -m src.reporting.dashboard_generator
+
+      - name: Build issue content
         if: always()
         run: |
           python - <<'PY'
           from __future__ import annotations
 
+          import csv
+          import json
           import os
           import re
           from datetime import datetime, timezone
@@ -60,6 +69,11 @@ jobs:
 
           log_path = Path("run.log")
           log = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
+
+          run_result = {}
+          result_path = Path("run_result.json")
+          if result_path.exists():
+              run_result = json.loads(result_path.read_text(encoding="utf-8"))
 
           info_pattern = re.compile(
               r"\[INFO\]\s*Ahr999:\s*([^\s]+)\s*Investment amount:\s*([^\s]+)\s*current price:\s*\$?([^\s]+)",
@@ -70,14 +84,38 @@ jobs:
           if info_matches:
               ahr999, invest_amount, current_price = info_matches[-1]
 
+          if run_result:
+              ahr999 = str(run_result.get("ahr999", ahr999))
+              invest_amount = str(run_result.get("planned_invest_usdt", invest_amount))
+              current_price = str(run_result.get("btc_price", current_price))
+
           exit_code = os.environ.get("EXIT_CODE", "1")
           run_ok = exit_code == "0"
           is_insufficient = "insufficient usdt balance" in log.lower() or "insufficientbalanceerror" in log.lower()
           error_lines = [line.strip() for line in log.splitlines() if line.strip().startswith("[ERROR]")]
           exception_reason = error_lines[0] if error_lines else f"Process exited with code {exit_code}"
+          executed_invest = str(run_result.get("executed_invest_usdt", "N/A")) if run_result else "N/A"
+          executed_btc = str(run_result.get("executed_btc_amount", "N/A")) if run_result else "N/A"
+
+          latest_metrics = ""
+          records_path = Path("data/investment_records.csv")
+          if records_path.exists():
+              with records_path.open("r", encoding="utf-8", newline="") as f:
+                  rows = list(csv.DictReader(f))
+              if rows:
+                  latest = rows[-1]
+                  latest_metrics = f"""
+          ## Portfolio Snapshot
+
+          - Cumulative invest (USDT): `{latest.get('cum_invest_usdt', 'N/A')}`
+          - Portfolio value (USDT): `{latest.get('portfolio_value_usdt', 'N/A')}`
+          - PnL (USDT): `{latest.get('pnl_usdt', 'N/A')}`
+          - PnL ratio: `{latest.get('pnl_ratio', 'N/A')}`
+          - Benchmark PnL ratio: `{latest.get('benchmark_pnl_ratio', 'N/A')}`
+          - Alpha ratio: `{latest.get('alpha_ratio', 'N/A')}`
+          """
 
           now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-
           if run_ok:
               title = f"[DCA] Success - {now}"
               body = f"""## DCA Run Result
@@ -85,8 +123,11 @@ jobs:
           - Status: Success
           - Run time: {now}
           - Ahr999: `{ahr999}`
-          - Investment amount: `{invest_amount}`
+          - Planned investment amount: `{invest_amount}`
+          - Executed investment amount: `{executed_invest}`
+          - Executed BTC amount: `{executed_btc}`
           - Current price: `{current_price}`
+          {latest_metrics}
 
           ## Raw Log
 
@@ -101,9 +142,12 @@ jobs:
           - Status: Failed (Insufficient Balance)
           - Run time: {now}
           - Ahr999: `{ahr999}`
-          - Investment amount: `{invest_amount}`
+          - Planned investment amount: `{invest_amount}`
+          - Executed investment amount: `{executed_invest}`
+          - Executed BTC amount: `{executed_btc}`
           - Current price: `{current_price}`
           - Message: `insufficient balance`
+          {latest_metrics}
 
           ## Raw Log
 
@@ -119,6 +163,10 @@ jobs:
           - Status: Failed
           - Run time: {now}
           - Exception reason: `{exception_reason}`
+          - Planned investment amount: `{invest_amount}`
+          - Executed investment amount: `{executed_invest}`
+          - Executed BTC amount: `{executed_btc}`
+          {latest_metrics}
 
           ## Traceback / Error Log
 
@@ -133,7 +181,7 @@ jobs:
         env:
           EXIT_CODE: ${{ steps.run_dca.outputs.exit_code }}
 
-      - name: Create GitHub Issue
+      - name: Create GitHub issue
         if: always()
         uses: actions/github-script@v7
         with:
@@ -142,7 +190,6 @@ jobs:
             const fs = require('fs');
             const title = fs.readFileSync('issue_title.txt', 'utf8').trim();
             const body = fs.readFileSync('issue_body.md', 'utf8');
-
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -150,3 +197,15 @@ jobs:
               body
             });
 
+      - name: Commit records and dashboard
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain data docs)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data docs
+            git commit -m "chore: update investment records"
+            git push
+          else
+            echo "No data/docs changes to commit."
+          fi

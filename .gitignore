@@ -65,4 +65,4 @@ temp/
 .iflow/
 
 backtest*
-docs/
+run_result.json

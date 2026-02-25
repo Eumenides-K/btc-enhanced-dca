@@ -6,7 +6,7 @@ buy BTC spot with a specified USDT amount.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import ccxt
 from ccxt.base.errors import InsufficientFunds
@@ -57,6 +57,15 @@ class OKXBtcUsdtTrader:
         if usdt_amount <= 0:
             raise ValueError("usdt_amount must be greater than 0")
 
+    @staticmethod
+    def _to_float(value: Any) -> Optional[float]:
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     def _place_market_buy_with_cost(self, usdt_amount: float) -> Dict[str, Any]:
         params = {"tdMode": "cash"}
         try:
@@ -77,13 +86,25 @@ class OKXBtcUsdtTrader:
         self._validate_usdt_amount(usdt_amount)
 
         order = self._place_market_buy_with_cost(usdt_amount)
+        filled_btc = self._to_float(order.get("filled"))
+        if filled_btc is None:
+            filled_btc = self._to_float(order.get("amount"))
+
+        avg_price = self._to_float(order.get("average"))
+        order_cost = self._to_float(order.get("cost"))
+        spend_usdt = order_cost if order_cost is not None else float(usdt_amount)
+        if avg_price is None and filled_btc and filled_btc > 0 and spend_usdt is not None:
+            avg_price = spend_usdt / filled_btc
+
         print(f"[INFO] Spot market buy order submitted: {order.get('id', 'unknown')}")
         return {
             "exchange": "okx",
             "symbol": self.symbol,
             "side": "buy",
             "type": "market",
-            "spend_usdt": float(usdt_amount),
+            "spend_usdt": float(spend_usdt),
+            "filled_btc": filled_btc,
+            "avg_price": avg_price,
             "order": order,
         }
 

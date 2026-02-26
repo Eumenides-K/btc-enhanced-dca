@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -49,11 +49,11 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>BTC Enhanced DCA 表现概览</h1>
+    <h1>BTC Enhanced DCA Overview</h1>
     <div class="grid" id="summary"></div>
 
     <div class="card chart-card">
-      <h2 class="chart-title">BTC 价格与平均成本走势</h2>
+      <h2 class="chart-title">BTC Price and Average Cost Trend</h2>
       <canvas id="trendChart" height="110"></canvas>
     </div>
 
@@ -77,9 +77,9 @@
         }
 
         const cards = [
-          ["BTC 当前价格 (USDT)", usd(latest.btc_price)],
-          ["累计投资金额 (USDT)", usd(latest.cum_invest_usdt)],
-          ["盈亏比率", pct(latest.pnl_ratio)]
+          ["BTC Current Price (USDT)", usd(latest.btc_price)],
+          ["Cumulative Investment (USDT)", usd(latest.cum_invest_usdt)],
+          ["PnL Ratio", pct(latest.pnl_ratio)]
         ];
         summaryNode.innerHTML = cards.map(([k, v]) =>
           `<div class="card"><div class="label">${k}</div><div class="value">${v}</div></div>`
@@ -101,14 +101,45 @@
           data: {
             labels,
             datasets: [
-              { label: "BTC价格走势", data: records.map((x) => x.btc_price), borderColor: "#d97706", tension: 0.25, spanGaps: true },
-              { label: "普通DCA平均成本走势", data: benchmarkAvgCost, borderColor: "#0891b2", tension: 0.25, spanGaps: true },
-              { label: "Enhanced DCA平均成本走势", data: strategyAvgCost, borderColor: "#16a34a", tension: 0.25, spanGaps: true }
+              {
+                label: "BTC Price",
+                data: records.map((x) => x.btc_price),
+                borderColor: "#d97706",
+                tension: 0.25,
+                spanGaps: true,
+                borderWidth: 2
+              },
+              {
+                label: "Enhanced DCA Avg Cost",
+                data: strategyAvgCost,
+                borderColor: "#16a34a",
+                tension: 0.25,
+                spanGaps: true,
+                borderWidth: 3,
+                pointRadius: 2,
+                pointHoverRadius: 4,
+                pointBackgroundColor: "#16a34a"
+              },
+              {
+                label: "Standard DCA Avg Cost",
+                data: benchmarkAvgCost,
+                borderColor: "#0891b2",
+                tension: 0.25,
+                spanGaps: true,
+                borderWidth: 2,
+                borderDash: [6, 4]
+              }
             ]
           },
           options: {
             responsive: true,
             maintainAspectRatio: true,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: {
+                labels: { usePointStyle: true }
+              }
+            },
             scales: {
               y: {
                 ticks: { callback: (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 }) }

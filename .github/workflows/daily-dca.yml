@@ -104,7 +104,7 @@ jobs:
           executed_btc = str(run_result.get("executed_btc_amount", "N/A")) if run_result else "N/A"
 
           latest_metrics = ""
-          records_path = Path("data/investment_records.csv")
+          records_path = Path("docs/data/investment_records.csv")
           if records_path.exists():
               with records_path.open("r", encoding="utf-8", newline="") as f:
                   rows = list(csv.DictReader(f))
@@ -226,12 +226,12 @@ jobs:
       - name: Commit records and dashboard
         if: always()
         run: |
-          if [ -n "$(git status --porcelain data docs)" ]; then
+          if [ -n "$(git status --porcelain docs)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data docs
+            git add docs
             git commit -m "chore: update investment records"
             git push
           else
-            echo "No data/docs changes to commit."
+            echo "No docs changes to commit."
           fi

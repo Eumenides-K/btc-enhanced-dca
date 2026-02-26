@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
-RECORDS_PATH = Path("data/investment_records.csv")
+RECORDS_PATH = Path("docs/data/investment_records.csv")
 DOCS_DIR = Path("docs")
 DOCS_DATA_DIR = DOCS_DIR / "data"
 SERIES_PATH = DOCS_DATA_DIR / "series.json"

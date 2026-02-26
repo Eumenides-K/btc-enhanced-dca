@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 RUN_RESULT_PATH = Path("run_result.json")
-RECORDS_PATH = Path("data/investment_records.csv")
+RECORDS_PATH = Path("docs/data/investment_records.csv")
 
 CSV_HEADERS = [
     "date",

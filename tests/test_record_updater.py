@@ -15,7 +15,7 @@ def _write_run_result(tmp_path: Path, payload: dict) -> None:
 
 
 def _read_rows(tmp_path: Path) -> list[dict[str, str]]:
-    with (tmp_path / "data" / "investment_records.csv").open("r", encoding="utf-8", newline="") as f:
+    with (tmp_path / "docs" / "data" / "investment_records.csv").open("r", encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
 
 
@@ -82,5 +82,5 @@ def test_update_records_skip_no_buy_success_day(tmp_path: Path, monkeypatch) -> 
         },
     )
     assert record_updater.update_records() == 0
-    assert not (tmp_path / "data" / "investment_records.csv").exists()
+    assert not (tmp_path / "docs" / "data" / "investment_records.csv").exists()
 

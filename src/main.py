@@ -66,7 +66,6 @@ def _fail(run_result: Dict[str, Any], stage: str, exc: Exception, failure_type: 
 
 def main() -> int:
     run_result = _build_run_result()
-    exit_code = 0
 
     try:
         app_config = AppConfig.from_env()

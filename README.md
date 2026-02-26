@@ -10,7 +10,7 @@ An intelligent Bitcoin Dollar Cost Averaging (DCA) tool that dynamically adjusts
 - **Smart Indicator**: Decision-making based on Ahr999
 - **Automated Trading**: Executes BTC/USDT spot market buy orders via OKX API
 - **GitHub Actions Integration**: No server needed, runs automatically daily and logs results to GitHub Issues
-- **Investment Records**: Stores daily strategy snapshots in `data/investment_records.csv`
+- **Investment Records**: Stores daily strategy snapshots in `docs/data/investment_records.csv`
 - **Performance Dashboard**: Publishes strategy/benchmark PnL curves to GitHub Pages (`docs/`)
 
 ## Quick Start
@@ -29,7 +29,7 @@ No deployment or server needed, runs automatically every day and logs results to
 
 2. **Clear historical record directories**
 
-   After forking, delete historical data in `data/` and `docs/data/` first. This avoids mixing the original repository's historical performance with your own records.
+   After forking, delete historical data in `docs/data/` first. This avoids mixing the original repository's historical performance with your own records.
 
 3. **Configure GitHub Secrets**
 
@@ -163,7 +163,7 @@ MIT License
 - **智能指标**：基于 Ahr999 进行决策
 - **自动交易**：通过 OKX API 执行 BTC/USDT 现货市价买入订单
 - **GitHub Actions 集成**：无需服务器，每日自动运行并将结果记录到 GitHub Issues
-- **投资记录**：将每日策略快照写入 `data/investment_records.csv`
+- **投资记录**：将每日策略快照写入 `docs/data/investment_records.csv`
 - **收益看板**：在 GitHub Pages 发布策略/基准收益曲线（`docs/`）
 
 ## 快速开始
@@ -183,7 +183,7 @@ MIT License
 
 2. **清理历史记录目录**
 
-   Fork 后请先删除 `data/` 与 `docs/data/` 中的历史数据，这样可以避免原仓库历史收益数据混入你自己的投资记录。
+   Fork 后请先删除 `docs/data/` 中的历史数据，这样可以避免原仓库历史收益数据混入你自己的投资记录。
 
 3. **配置 GitHub Secrets**
 

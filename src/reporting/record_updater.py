@@ -65,8 +65,35 @@ def _extract_date(run_time_utc: str) -> str:
 def _load_existing_rows() -> List[Dict[str, str]]:
     if not RECORDS_PATH.exists():
         return []
+    # Ignore blank lines to avoid broken headers/rows from manual edits.
     with RECORDS_PATH.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+        reader = csv.DictReader(line for line in f if line.strip())
+        rows: List[Dict[str, str]] = []
+        for row in reader:
+            if not row:
+                continue
+
+            # Backward compatibility: reconstruct missing keys for older CSV layouts.
+            run_time_utc = str(row.get("run_time_utc", "")).strip()
+            date = str(row.get("date", "")).strip()
+            if not date and run_time_utc:
+                date = _extract_date(run_time_utc)
+            if not run_time_utc and date:
+                run_time_utc = f"{date}T00:00:00Z"
+
+            normalized: Dict[str, str] = {}
+            for header in CSV_HEADERS:
+                if header == "date":
+                    normalized[header] = date
+                elif header == "run_time_utc":
+                    normalized[header] = run_time_utc
+                else:
+                    normalized[header] = str(row.get(header, "") or "")
+
+            if normalized["date"]:
+                rows.append(normalized)
+
+        return rows
 
 
 def _recalculate(rows: List[Dict[str, str]]) -> List[Dict[str, str]]:

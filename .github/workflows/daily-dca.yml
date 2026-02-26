@@ -216,6 +216,33 @@ jobs:
             const fs = require('fs');
             const title = fs.readFileSync('issue_title.txt', 'utf8').trim();
             const body = fs.readFileSync('issue_body.md', 'utf8');
+            const SUCCESS_PREFIX = '[DCA] Success - ';
+
+            if (title.startsWith(SUCCESS_PREFIX)) {
+              const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                per_page: 100
+              });
+
+              const previousSuccessIssue = openIssues.find(
+                (issue) => !issue.pull_request && issue.title && issue.title.startsWith(SUCCESS_PREFIX)
+              );
+
+              if (previousSuccessIssue) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: previousSuccessIssue.number,
+                  state: 'closed'
+                });
+                core.info(`Closed previous success issue #${previousSuccessIssue.number}`);
+              } else {
+                core.info('No previous open success issue found.');
+              }
+            }
+
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

@@ -22,6 +22,43 @@ class OrderAmountTooSmallError(RuntimeError):
     """Raised when order size is below exchange minimum requirements."""
 
 
+class PatchedOKXExchange(ccxt.okx):
+    """OKX exchange client with a guard for malformed instrument metadata."""
+
+    @staticmethod
+    def _pick_symbol_part(parts: list[str], index: int) -> str:
+        if index >= len(parts):
+            return ""
+        return parts[index] or ""
+
+    def parse_market(self, market: dict) -> dict:
+        normalized_market = dict(market)
+        base_ccy = normalized_market.get("baseCcy") or ""
+        quote_ccy = normalized_market.get("quoteCcy") or ""
+
+        underlying = self.safe_string(normalized_market, "uly", "") or ""
+        if underlying and (not base_ccy or not quote_ccy):
+            underlying_parts = underlying.split("-")
+            if not base_ccy:
+                base_ccy = self._pick_symbol_part(underlying_parts, 0)
+            if not quote_ccy:
+                quote_ccy = self._pick_symbol_part(underlying_parts, 1)
+
+        inst_id = self.safe_string(normalized_market, "instId", "") or ""
+        if inst_id and (not base_ccy or not quote_ccy):
+            inst_parts = inst_id.split("-")
+            if not base_ccy:
+                base_ccy = self._pick_symbol_part(inst_parts, 0)
+            if not quote_ccy:
+                quote_ccy = self._pick_symbol_part(inst_parts, 1)
+
+        normalized_market["baseCcy"] = base_ccy
+        normalized_market["quoteCcy"] = quote_ccy
+        if base_ccy and quote_ccy:
+            normalized_market["uly"] = f"{base_ccy}-{quote_ccy}"
+        return super().parse_market(normalized_market)
+
+
 class OKXBtcUsdtTrader:
     """Place BTC/USDT spot market buy orders on OKX by USDT cost."""
 
@@ -43,9 +80,9 @@ class OKXBtcUsdtTrader:
         if missing:
             raise ValueError(f"Missing required OKX credentials: {', '.join(missing)}")
 
-    def _build_exchange(self) -> ccxt.okx:
+    def _build_exchange(self) -> PatchedOKXExchange:
         """Initialize authenticated OKX client."""
-        exchange = ccxt.okx(
+        exchange = PatchedOKXExchange(
             {
                 "apiKey": self.okx_config.api_key,
                 "secret": self.okx_config.secret_key,

@@ -1,12 +1,12 @@
 """Data fetching module for BTC price and on-chain data."""
 
-import time
 import math
-from typing import Dict, Optional
-import requests
-import ccxt
+import time
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import requests
 from scipy import stats
+
 from src.config.settings import DataConfig
 
 GENESIS = 1230940800
@@ -18,26 +18,23 @@ class DataFetcher:
         """Initialize data fetcher with configuration."""
         self.config = config
         self.session = requests.Session()
-        self.session.timeout = config.request_timeout
-
-        # Initialize OKX exchange (primary)
-        self.okx = ccxt.okx({
-            'timeout': config.request_timeout * 1000,  # ccxt uses milliseconds
-            'enableRateLimit': True,
-        })
-
-        # Initialize Binance exchange (fallback)
-        self.binance = ccxt.binance({
-            'timeout': config.request_timeout * 1000,  # ccxt uses milliseconds
-            'enableRateLimit': True,
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "btc-enhanced-dca/1.0",
+                "Accept": "application/json",
+            }
+        )
 
     def _make_request(self, url: str, params: Optional[Dict] = None) -> Dict:
         """Make HTTP request with retry logic."""
         last_exception: Optional[Exception] = None
         for attempt in range(self.config.max_retries):
             try:
-                response = self.session.get(url, params=params)
+                response = self.session.get(
+                    url,
+                    params=params,
+                    timeout=self.config.request_timeout,
+                )
                 response.raise_for_status()
 
                 # Check if response is actually JSON
@@ -75,69 +72,133 @@ class DataFetcher:
 
         raise RuntimeError(f"Failed request after retries: {url}") from last_exception
 
-    def _get_btc_price_history(self):
-        """Get BTC price history from OKX API first, fallback to Binance if OKX fails."""
-        exchanges = [
-            ('OKX', self.okx),
-            ('Binance', self.binance)
-        ]
+    def _fetch_first_success(
+        self,
+        providers: List[Tuple[str, Callable[[], Any]]],
+        action: str,
+    ) -> Any:
         last_exception: Optional[Exception] = None
-
-        for exchange_name, exchange in exchanges:
+        for provider_name, provider in providers:
             try:
-                print(f"[INFO] Attempting to fetch BTC price history from {exchange_name}")
-                # OKX uses BTC-USDT, Binance uses BTC/USDT
-                symbol = 'BTC-USDT' if exchange_name == 'OKX' else 'BTC/USDT'
-                ohlcv = exchange.fetch_ohlcv(symbol, '1d', limit=200)
-
-                klines_data = []
-                for candle in ohlcv:
-                    klines_data.append([
-                        candle[0],  # timestamp
-                        candle[1],  # open
-                        candle[2],  # high
-                        candle[3],  # low
-                        candle[4],  # close
-                        candle[5],  # volume
-                        # Add empty values for remaining fields to match original format
-                        0, 0, 0, 0, 0, 0
-                    ])
-
-                print(f"[INFO] Successfully fetched {len(klines_data)} price records from {exchange_name}")
-                return klines_data
-
+                print(f"[INFO] Attempting to fetch {action} from {provider_name}")
+                result = provider()
+                print(f"[INFO] Successfully fetched {action} from {provider_name}")
+                return result
             except Exception as e:
                 last_exception = e
-                print(f"[WARN] Failed to fetch BTC price history from {exchange_name}: {e}")
-                print("[INFO] Trying next API...")
-
-        raise RuntimeError("All exchanges failed to fetch BTC price history") from last_exception
-
-    def _get_current_btc_price(self):
-        """Get current BTC price from OKX API first, fallback to Binance if OKX fails."""
-        exchanges = [
-            ('OKX', self.okx),
-            ('Binance', self.binance)
-        ]
-        last_exception: Optional[Exception] = None
-
-        for exchange_name, exchange in exchanges:
-            try:
-                print(f"[INFO] Attempting to fetch current BTC price from {exchange_name}")
-                # OKX uses BTC-USDT, Binance uses BTC/USDT
-                symbol = 'BTC-USDT' if exchange_name == 'OKX' else 'BTC/USDT'
-                ticker = exchange.fetch_ticker(symbol)
-                price = float(ticker['last'])
-
-                print(f"[INFO] Successfully fetched BTC price from {exchange_name}: ${price}")
-                return price
-
-            except Exception as e:
-                last_exception = e
-                print(f"[WARN] Failed to fetch current BTC price from {exchange_name}: {e}")
+                print(f"[WARN] Failed to fetch {action} from {provider_name}: {e}")
                 print("[INFO] Trying next exchange...")
 
-        raise RuntimeError("All exchanges failed to fetch current BTC price") from last_exception
+        raise RuntimeError(f"All exchanges failed to fetch {action}") from last_exception
+
+    def _fetch_okx_current_price(self) -> float:
+        payload = self._make_request(
+            "https://www.okx.com/api/v5/market/ticker",
+            params={"instId": "BTC-USDT"},
+        )
+        data = payload.get("data") or []
+        if not data:
+            raise ValueError("OKX ticker response did not contain data")
+
+        price = data[0].get("last")
+        if price is None:
+            raise ValueError("OKX ticker response did not contain last price")
+
+        return float(price)
+
+    def _fetch_kraken_current_price(self) -> float:
+        payload = self._make_request(
+            "https://api.kraken.com/0/public/Ticker",
+            params={"pair": "XBTUSD"},
+        )
+        result = payload.get("result") or {}
+        ticker = next((value for key, value in result.items() if key != "last"), None)
+        if not ticker:
+            raise ValueError("Kraken ticker response did not contain market data")
+
+        close = ticker.get("c") or []
+        if not close:
+            raise ValueError("Kraken ticker response did not contain close price")
+
+        return float(close[0])
+
+    @staticmethod
+    def _normalize_ohlcv_rows(rows: List[List[Any]]) -> List[List[float]]:
+        normalized: List[List[float]] = []
+        for row in rows:
+            if len(row) < 6:
+                continue
+            normalized.append(
+                [
+                    int(float(row[0])),
+                    float(row[1]),
+                    float(row[2]),
+                    float(row[3]),
+                    float(row[4]),
+                    float(row[5]),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ]
+            )
+
+        normalized.sort(key=lambda item: item[0])
+        return normalized
+
+    def _fetch_okx_price_history(self) -> List[List[float]]:
+        payload = self._make_request(
+            "https://www.okx.com/api/v5/market/history-candles",
+            params={
+                "instId": "BTC-USDT",
+                "bar": "1Dutc",
+                "limit": 200,
+            },
+        )
+        rows = payload.get("data") or []
+        if not rows:
+            raise ValueError("OKX history response did not contain candles")
+
+        return self._normalize_ohlcv_rows(rows)
+
+    def _fetch_kraken_price_history(self) -> List[List[float]]:
+        payload = self._make_request(
+            "https://api.kraken.com/0/public/OHLC",
+            params={"pair": "XBTUSD", "interval": 1440},
+        )
+        result = payload.get("result") or {}
+        rows = next((value for key, value in result.items() if key != "last"), None)
+        if not rows:
+            raise ValueError("Kraken OHLC response did not contain candles")
+
+        normalized_rows = self._normalize_ohlcv_rows(rows)
+        if len(normalized_rows) > 200:
+            normalized_rows = normalized_rows[-200:]
+        return normalized_rows
+
+    def _get_btc_price_history(self):
+        """Get BTC price history from OKX first, fallback to Kraken."""
+        return self._fetch_first_success(
+            [
+                ("OKX", self._fetch_okx_price_history),
+                ("Kraken", self._fetch_kraken_price_history),
+            ],
+            "BTC price history",
+        )
+
+    def _get_current_btc_price(self):
+        """Get current BTC price from OKX first, fallback to Kraken."""
+        price = self._fetch_first_success(
+            [
+                ("OKX", self._fetch_okx_current_price),
+                ("Kraken", self._fetch_kraken_current_price),
+            ],
+            "current BTC price",
+        )
+        print(f"[INFO] Current BTC price: ${price}")
+        return float(price)
 
     def _calculate_btc_ahr999(self):
         """

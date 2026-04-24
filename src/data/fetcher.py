@@ -222,8 +222,7 @@ class DataFetcher:
             days = (int(time.time() * 1000) / 1000 - GENESIS) / (24 * 60 * 60)
 
             # exponential growth valuation
-            growth_valuation = 10 ** (5.64 * math.log(days, 10) - 17.01)
-
+            growth_valuation = 10 ** (5.6385 * math.log(days, 10) - 16.3285)
             # calculating Ahr999
             ahr999 = (current_price / investment_cost_200d) * (current_price / growth_valuation)
 

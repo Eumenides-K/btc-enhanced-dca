@@ -101,7 +101,6 @@ jobs:
           error_lines = [line.strip() for line in log.splitlines() if line.strip().startswith("[ERROR]")]
           exception_reason = error_lines[0] if error_lines else f"Process exited with code {exit_code}"
           executed_invest = str(run_result.get("executed_invest_usdt", "N/A")) if run_result else "N/A"
-          executed_btc = str(run_result.get("executed_btc_amount", "N/A")) if run_result else "N/A"
 
           latest_metrics = ""
           records_path = Path("docs/data/investment_records.csv")
@@ -131,7 +130,6 @@ jobs:
           - Ahr999: `{ahr999}`
           - Planned investment amount: `{invest_amount}`
           - Executed investment amount: `{executed_invest}`
-          - Executed BTC amount: `{executed_btc}`
           - Current price: `{current_price}`
           {latest_metrics}
 
@@ -150,7 +148,6 @@ jobs:
           - Ahr999: `{ahr999}`
           - Planned investment amount: `{invest_amount}`
           - Executed investment amount: `{executed_invest}`
-          - Executed BTC amount: `{executed_btc}`
           - Current price: `{current_price}`
           - Message: `insufficient balance`
           {latest_metrics}
@@ -170,7 +167,6 @@ jobs:
           - Ahr999: `{ahr999}`
           - Planned investment amount: `{invest_amount}`
           - Executed investment amount: `{executed_invest}`
-          - Executed BTC amount: `{executed_btc}`
           - Current price: `{current_price}`
           - Message: `order amount below minimum requirement`
           {latest_metrics}
@@ -191,7 +187,6 @@ jobs:
           - Exception reason: `{exception_reason}`
           - Planned investment amount: `{invest_amount}`
           - Executed investment amount: `{executed_invest}`
-          - Executed BTC amount: `{executed_btc}`
           {latest_metrics}
 
           ## Traceback / Error Log

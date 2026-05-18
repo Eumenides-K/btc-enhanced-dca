@@ -31,10 +31,20 @@ class PatchedOKXExchange(ccxt.okx):
             return ""
         return parts[index] or ""
 
+    @staticmethod
+    def _first_non_empty(*values: Any) -> str:
+        for value in values:
+            if value:
+                return str(value)
+        return ""
+
     def parse_market(self, market: dict) -> dict:
         normalized_market = dict(market)
+        instrument_type = (self.safe_string_lower(normalized_market, "instType") or "")
+        is_contract = instrument_type in {"swap", "futures", "future", "option"}
         base_ccy = normalized_market.get("baseCcy") or ""
         quote_ccy = normalized_market.get("quoteCcy") or ""
+        settle_ccy = normalized_market.get("settleCcy") or ""
 
         underlying = self.safe_string(normalized_market, "uly", "") or ""
         if underlying and (not base_ccy or not quote_ccy):
@@ -52,8 +62,16 @@ class PatchedOKXExchange(ccxt.okx):
             if not quote_ccy:
                 quote_ccy = self._pick_symbol_part(inst_parts, 1)
 
+        if is_contract and not settle_ccy:
+            settle_ccy = self._first_non_empty(
+                normalized_market.get("ctValCcy"),
+                quote_ccy,
+                base_ccy,
+            )
+
         normalized_market["baseCcy"] = base_ccy
         normalized_market["quoteCcy"] = quote_ccy
+        normalized_market["settleCcy"] = settle_ccy
         if base_ccy and quote_ccy:
             normalized_market["uly"] = f"{base_ccy}-{quote_ccy}"
         return super().parse_market(normalized_market)

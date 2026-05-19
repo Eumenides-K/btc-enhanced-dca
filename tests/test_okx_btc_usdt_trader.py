@@ -54,6 +54,31 @@ def test_patched_okx_parse_market_handles_missing_settle_currency_for_contract()
     assert parsed["symbol"] == "BTC/USDT:USDT"
 
 
+def test_patched_okx_parse_market_infers_missing_expiry_for_future_contract() -> None:
+    exchange = PatchedOKXExchange()
+
+    market = {
+        "instId": "BTC-USDT-250328",
+        "instType": "FUTURES",
+        "baseCcy": "BTC",
+        "quoteCcy": "USDT",
+        "settleCcy": "USDT",
+        "uly": "BTC-USDT",
+        "expTime": "",
+        "ctVal": "0.01",
+        "lever": "",
+        "lotSz": "1",
+        "minSz": "1",
+        "tickSz": "0.1",
+        "state": "live",
+    }
+
+    parsed = exchange.parse_market(market)
+
+    assert parsed["expiry"] == 1743120000000
+    assert parsed["symbol"] == "BTC/USDT:USDT-250328"
+
+
 def test_trader_builds_patched_okx_exchange() -> None:
     trader = OKXBtcUsdtTrader(
         OKXConfig(api_key="key", secret_key="secret", passphrase="pass"),

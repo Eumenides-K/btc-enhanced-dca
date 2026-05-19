@@ -6,6 +6,7 @@ buy BTC spot with a specified USDT amount.
 
 from __future__ import annotations
 
+import datetime
 from typing import Any, Dict, Optional
 
 import ccxt
@@ -38,10 +39,27 @@ class PatchedOKXExchange(ccxt.okx):
                 return str(value)
         return ""
 
+    @staticmethod
+    def _infer_exp_time_from_inst_id(inst_id: str) -> Optional[str]:
+        if not inst_id:
+            return None
+
+        for part in inst_id.split("-"):
+            if len(part) != 6 or not part.isdigit():
+                continue
+            try:
+                expiry_date = datetime.datetime.strptime(part, "%y%m%d").replace(tzinfo=datetime.timezone.utc)
+            except ValueError:
+                continue
+            return str(int(expiry_date.timestamp() * 1000))
+
+        return None
+
     def parse_market(self, market: dict) -> dict:
         normalized_market = dict(market)
         instrument_type = (self.safe_string_lower(normalized_market, "instType") or "")
         is_contract = instrument_type in {"swap", "futures", "future", "option"}
+        needs_expiry = instrument_type in {"futures", "future", "option"}
         base_ccy = normalized_market.get("baseCcy") or ""
         quote_ccy = normalized_market.get("quoteCcy") or ""
         settle_ccy = normalized_market.get("settleCcy") or ""
@@ -68,6 +86,11 @@ class PatchedOKXExchange(ccxt.okx):
                 quote_ccy,
                 base_ccy,
             )
+
+        if needs_expiry and self.safe_integer(normalized_market, "expTime") is None:
+            inferred_exp_time = self._infer_exp_time_from_inst_id(inst_id)
+            if inferred_exp_time is not None:
+                normalized_market["expTime"] = inferred_exp_time
 
         normalized_market["baseCcy"] = base_ccy
         normalized_market["quoteCcy"] = quote_ccy

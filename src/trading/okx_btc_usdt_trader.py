@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 
 import ccxt
 from ccxt.base.errors import InsufficientFunds, InvalidOrder
+from ccxt.base.precise import Precise
 
 from src.config.settings import OKXConfig, TradingConfig
 
@@ -97,7 +98,114 @@ class PatchedOKXExchange(ccxt.okx):
         normalized_market["settleCcy"] = settle_ccy
         if base_ccy and quote_ccy:
             normalized_market["uly"] = f"{base_ccy}-{quote_ccy}"
-        return super().parse_market(normalized_market)
+        market_id = self.safe_string(normalized_market, "instId")
+        market_type = instrument_type
+        if market_type == "futures":
+            market_type = "future"
+
+        spot = market_type == "spot"
+        future = market_type == "future"
+        swap = market_type == "swap"
+        option = market_type == "option"
+        contract = swap or future or option
+
+        base_id = self.safe_string(normalized_market, "baseCcy", "")
+        quote_id = self.safe_string(normalized_market, "quoteCcy", "")
+        settle_id = self.safe_string(normalized_market, "settleCcy")
+        settle = self.safe_currency_code(settle_id)
+        underlying = self.safe_string(normalized_market, "uly")
+        if (underlying is not None) and not spot:
+            parts = underlying.split("-")
+            base_id = self.safe_string(parts, 0, base_id)
+            quote_id = self.safe_string(parts, 1, quote_id)
+        if ((base_id == "") or (quote_id == "")) and spot:
+            inst_id = self.safe_string(normalized_market, "instId", "")
+            parts = inst_id.split("-")
+            base_id = self.safe_string(parts, 0, base_id)
+            quote_id = self.safe_string(parts, 1, quote_id)
+
+        base = self.safe_currency_code(base_id)
+        quote = self.safe_currency_code(quote_id)
+        symbol = base + "/" + quote
+        if base == "" or quote == "":
+            symbol = market_id
+
+        expiry = None
+        strike_price = None
+        option_type = None
+        if contract:
+            if settle is not None:
+                symbol = symbol + ":" + settle
+            expiry = self.safe_integer(normalized_market, "expTime")
+            if future and expiry is not None:
+                symbol = symbol + "-" + self.yymmdd(expiry)
+            elif option:
+                strike_price = self.safe_string(normalized_market, "stk")
+                option_type = self.safe_string(normalized_market, "optType")
+                if expiry is not None:
+                    symbol = symbol + "-" + self.yymmdd(expiry) + "-" + strike_price + "-" + option_type
+                option_type = "put" if option_type == "P" else "call"
+
+        fees = self.safe_dict_2(self.fees, market_type, "trading", {})
+        max_leverage = self.safe_string(normalized_market, "lever", "1")
+        max_leverage = Precise.string_max(max_leverage, "1")
+        max_spot_cost = self.safe_number(normalized_market, "maxMktSz")
+        status = self.safe_string(normalized_market, "state")
+        inst_id_code = self.safe_integer(normalized_market, "instIdCode")
+
+        return self.extend(
+            fees,
+            {
+                "id": market_id,
+                "instIdCode": inst_id_code,
+                "symbol": symbol,
+                "base": base,
+                "quote": quote,
+                "settle": settle,
+                "baseId": base_id,
+                "quoteId": quote_id,
+                "settleId": settle_id,
+                "type": market_type,
+                "spot": spot,
+                "margin": spot and (Precise.string_gt(max_leverage, "1")),
+                "swap": swap,
+                "future": future,
+                "option": option,
+                "active": status == "live",
+                "contract": contract,
+                "linear": (quote_id == settle_id) if contract else None,
+                "inverse": (base_id == settle_id) if contract else None,
+                "contractSize": self.safe_number(normalized_market, "ctVal") if contract else None,
+                "expiry": expiry,
+                "expiryDatetime": self.iso8601(expiry),
+                "strike": self.parse_number(strike_price),
+                "optionType": option_type,
+                "created": self.safe_integer_2(normalized_market, "contTdSwTime", "listTime"),
+                "precision": {
+                    "amount": self.safe_number(normalized_market, "lotSz"),
+                    "price": self.safe_number(normalized_market, "tickSz"),
+                },
+                "limits": {
+                    "leverage": {
+                        "min": self.parse_number("1"),
+                        "max": self.parse_number(max_leverage),
+                    },
+                    "amount": {
+                        "min": self.safe_number(normalized_market, "minSz"),
+                        "max": None,
+                    },
+                    "price": {
+                        "min": None,
+                        "max": None,
+                    },
+                    "cost": {
+                        "min": None,
+                        "max": None if contract else max_spot_cost,
+                    },
+                },
+                "info": normalized_market,
+            },
+        )
 
 
 class OKXBtcUsdtTrader:

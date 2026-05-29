@@ -1,19 +1,19 @@
 {
   "summary": {
-    "total_records": 95,
+    "total_records": 96,
     "latest": {
-      "date": "2026-05-28",
+      "date": "2026-05-29",
       "status": "success",
-      "btc_price": 74339.0,
-      "cum_invest_usdt": 981.1085910971,
-      "portfolio_value_usdt": 83.5731824308,
-      "pnl_usdt": -897.5354086663,
-      "pnl_ratio": -0.9148176021,
-      "benchmark_value_usdt": 1026.2164091111,
-      "benchmark_pnl_usdt": 45.107818014,
-      "benchmark_pnl_ratio": 0.0459763765,
-      "alpha_usdt": -942.6432266803,
-      "alpha_ratio": -0.9607939786
+      "btc_price": 73603.6,
+      "cum_invest_usdt": 988.1030660319,
+      "portfolio_value_usdt": 82.7464331019,
+      "pnl_usdt": -905.35663293,
+      "pnl_ratio": -0.9162572854,
+      "benchmark_value_usdt": 1023.0590183057,
+      "benchmark_pnl_usdt": 34.9559522738,
+      "benchmark_pnl_ratio": 0.0353768281,
+      "alpha_usdt": -940.3125852038,
+      "alpha_ratio": -0.9516341134
     }
   },
   "records": [
@@ -1346,6 +1346,20 @@
       "benchmark_pnl_ratio": 0.0459763765,
       "alpha_usdt": -942.6432266803,
       "alpha_ratio": -0.9607939786
+    },
+    {
+      "date": "2026-05-29",
+      "status": "success",
+      "btc_price": 73603.6,
+      "cum_invest_usdt": 988.1030660319,
+      "portfolio_value_usdt": 82.7464331019,
+      "pnl_usdt": -905.35663293,
+      "pnl_ratio": -0.9162572854,
+      "benchmark_value_usdt": 1023.0590183057,
+      "benchmark_pnl_usdt": 34.9559522738,
+      "benchmark_pnl_ratio": 0.0353768281,
+      "alpha_usdt": -940.3125852038,
+      "alpha_ratio": -0.9516341134
     }
   ]
 }

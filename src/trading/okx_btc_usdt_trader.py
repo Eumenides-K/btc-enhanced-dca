@@ -128,7 +128,7 @@ class PatchedOKXExchange(ccxt.okx):
         quote = self.safe_currency_code(quote_id)
         symbol = base + "/" + quote
         if base == "" or quote == "":
-            symbol = market_id
+            symbol = ""
 
         expiry = None
         strike_price = None
@@ -145,6 +145,15 @@ class PatchedOKXExchange(ccxt.okx):
                 if expiry is not None:
                     symbol = symbol + "-" + self.yymmdd(expiry) + "-" + strike_price + "-" + option_type
                 option_type = "put" if option_type == "P" else "call"
+
+        market_id = self._first_non_empty(
+            self.safe_string(normalized_market, "instId"),
+            self.safe_string(normalized_market, "instIdCode"),
+            symbol,
+            self.safe_string(normalized_market, "uly"),
+        )
+        if not symbol:
+            symbol = market_id
 
         fees = self.safe_dict_2(self.fees, market_type, "trading", {})
         max_leverage = self.safe_string(normalized_market, "lever", "1")

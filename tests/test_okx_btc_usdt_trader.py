@@ -54,6 +54,30 @@ def test_patched_okx_parse_market_handles_missing_settle_currency_for_contract()
     assert parsed["symbol"] == "BTC/USDT:USDT"
 
 
+def test_patched_okx_parse_market_falls_back_to_symbol_when_inst_id_is_missing() -> None:
+    exchange = PatchedOKXExchange()
+
+    market = {
+        "instId": "",
+        "instType": "SPOT",
+        "baseCcy": "BTC",
+        "quoteCcy": "USDT",
+        "settleCcy": "",
+        "uly": "",
+        "ctVal": "1",
+        "lever": "",
+        "lotSz": "1",
+        "minSz": "1",
+        "tickSz": "0.1",
+        "state": "live",
+    }
+
+    parsed = exchange.parse_market(market)
+
+    assert parsed["id"] == "BTC/USDT"
+    assert parsed["symbol"] == "BTC/USDT"
+
+
 def test_patched_okx_parse_market_infers_missing_expiry_for_future_contract() -> None:
     exchange = PatchedOKXExchange()
 

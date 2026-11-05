@@ -3,17 +3,17 @@
     "total_records": 256,
     "latest": {
       "date": "2026-11-05",
-      "status": "failed",
-      "btc_price": 80449.0,
-      "cum_invest_usdt": 2171.8633781243,
-      "portfolio_value_usdt": 90.4421495228,
-      "pnl_usdt": -2081.4212286015,
-      "pnl_ratio": -0.9583573486,
-      "benchmark_value_usdt": 2525.1471855628,
-      "benchmark_pnl_usdt": 353.2838074385,
-      "benchmark_pnl_ratio": 0.1626639185,
-      "alpha_usdt": -2434.70503604,
-      "alpha_ratio": -1.1210212671
+      "status": "success",
+      "btc_price": 80475.3,
+      "cum_invest_usdt": 2177.1492712925,
+      "portfolio_value_usdt": 90.4717164352,
+      "pnl_usdt": -2086.6775548573,
+      "pnl_ratio": -0.9584448721,
+      "benchmark_value_usdt": 2531.2585876992,
+      "benchmark_pnl_usdt": 354.1093164067,
+      "benchmark_pnl_ratio": 0.162648157,
+      "alpha_usdt": -2440.7868712641,
+      "alpha_ratio": -1.1210930291
     }
   },
   "records": [
@@ -3589,17 +3589,17 @@
     },
     {
       "date": "2026-11-05",
-      "status": "failed",
-      "btc_price": 80449.0,
-      "cum_invest_usdt": 2171.8633781243,
-      "portfolio_value_usdt": 90.4421495228,
-      "pnl_usdt": -2081.4212286015,
-      "pnl_ratio": -0.9583573486,
-      "benchmark_value_usdt": 2525.1471855628,
-      "benchmark_pnl_usdt": 353.2838074385,
-      "benchmark_pnl_ratio": 0.1626639185,
-      "alpha_usdt": -2434.70503604,
-      "alpha_ratio": -1.1210212671
+      "status": "success",
+      "btc_price": 80475.3,
+      "cum_invest_usdt": 2177.1492712925,
+      "portfolio_value_usdt": 90.4717164352,
+      "pnl_usdt": -2086.6775548573,
+      "pnl_ratio": -0.9584448721,
+      "benchmark_value_usdt": 2531.2585876992,
+      "benchmark_pnl_usdt": 354.1093164067,
+      "benchmark_pnl_ratio": 0.162648157,
+      "alpha_usdt": -2440.7868712641,
+      "alpha_ratio": -1.1210930291
     }
   ]
 }
